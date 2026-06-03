@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: website-operator-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: website-operator-controller-manager
+  namespace: website-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: website-operator-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: website-operator-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: website-operator-controller-manager
+    namespace: website-operator-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: website-operator-controller-manager
+  namespace: website-operator-system
+  labels:
+    control-plane: controller-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+    spec:
+      serviceAccountName: website-operator-controller-manager
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: manager
+          image: ghcr.io/ChenhaoZhang01/website-operator:latest
+          args:
+            - --leader-elect
+            - --health-probe-bind-address=:8081
+          ports:
+            - containerPort: 8080
+              name: metrics
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8081 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /readyz, port: 8081 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 10m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 128Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

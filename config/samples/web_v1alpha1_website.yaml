@@ -1,0 +1,9 @@
+apiVersion: web.example.com/v1alpha1
+kind: Website
+metadata:
+  name: hello
+spec:
+  image: nginxdemos/hello:plain-text
+  replicas: 3
+  containerPort: 80
+  host: hello.example.com
